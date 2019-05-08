@@ -1,0 +1,58 @@
+---
+- name: app services test [rhel6]
+  block:
+    - name: services startup errors [rhel6]
+#      shell: "/sbin/service {{ item }} status | awk '{print $5}' | sed 's/running.../running/g'"
+      shell: "/sbin/service {{ item }} status"
+      register: common_app_service
+      failed_when: "'running' not in common_app_service.stdout or 'exists' not in common_app_service.stdout"
+      with_items: "{{ common_app_name }}"
+    
+#    - name: testing services startup
+#      debug: msg="{{ item.stdout }}"
+#      failed_when: "'running' not in item.stdout or 'exists' not in item.stdout"
+#      with_items: "{{ common_app_service.results }}"
+
+  rescue:
+    - name: app services failed var
+      set_fact:
+        common_app_service_failed: "{{ common_app_service_failed|default({}) | combine ( { item.item: item.stdout }  ) }}"
+      with_items: "{{ common_app_service.results }}"
+      when: item.failed|bool
+
+    - name: app services error var
+      set_fact:
+        common_app_service_failed: "{{ common_app_service_failed|default({}) | combine ( { item.item: item.stderr }  ) }}"
+      with_items: "{{ common_app_service.results }}"
+      when: item.stderr != ""
+
+  always:
+#    - name: app services success var
+#      set_fact:
+#        common_app_service_success: "{{ common_app_service_success|default({}) | combine ( { item.item: item.stdout }  ) }}"
+#      with_items: "{{ common_app_service.results }}"
+#      when: item.stdout == "running"
+
+#    - name: app service test results
+#      debug: msg="{{ common_app_service_success }}"
+#      when: common_app_service_success is defined and common_app_service_success|length > 0
+
+    - name: app service test results
+      debug: msg="{{ common_app_service_failed }}"
+      when: common_app_service_failed is defined and common_app_service_failed|length > 0
+
+    - name: app services result var
+      set_fact:
+        common_app_service_results: "Success"
+      when:
+        - common_app_service_failed is not defined
+#        - common_app_service_success is defined and common_app_service_success|length > 0
+
+    - name: app services result var
+      set_fact:
+        common_app_service_results: "Failed"
+      when: common_app_service_failed is defined and common_app_service_failed|length > 0
+
+    - name: app service results
+      debug: msg="{{ common_app_service_results }}"
+

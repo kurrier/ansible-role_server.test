@@ -1,0 +1,68 @@
+---
+image: docker:latest
+stages:
+  - check
+  - test
+
+syntax_lint:
+  stage: check
+#  image: python:latest
+  image: gitlab.lifecare.com:4567/devops/docker/ansible-lint:latest
+  script:
+#    - pip install yamllint
+#    - pip install ansible-lint
+    - yamllint -c .yamllint.yml tasks/ 2>&1 | tee yaml_syntax.txt || true
+    - ansible-lint --parseable-severity -x 303,306 --exclude=meta/ . 2>&1 | tee ansible_syntax.txt || true
+    - yamllint -c .yamllint.yml tasks/; ansible-lint -x 303,306 --parseable-severity --exclude=meta/ .
+  artifacts:
+    paths:
+      - yaml_syntax.txt
+      - ansible_syntax.txt
+    expire_in: 1 week
+    when: on_failure
+  allow_failure: true
+  only:
+    - branches
+  except:
+    - master
+
+meta_lint:
+  stage: check
+#  image: python:latest
+  image: gitlab.lifecare.com:4567/devops/docker/ansible-lint:latest
+  script:
+#    - pip install yamllint
+#    - pip install ansible-lint
+    - yamllint -c .yamllint.yml meta/ 2>&1 | tee yaml_meta.txt || true
+    - ansible-lint --parseable-severity --exclude=tasks/ . 2>&1 | tee ansible_meta.txt || true
+    - yamllint -c .yamllint.yml meta/; ansible-lint --parseable-severity --exclude=tasks/ .
+  artifacts:
+    paths:
+      - yaml_meta.txt
+      - ansible_meta.txt
+    expire_in: 1 week
+    when: on_failure
+  allow_failure: true
+  only:
+    - branches
+  except:
+    - master
+
+test_playbook:
+  stage: test
+  image: registry.access.redhat.com/ansible-runner-11/ansible-runner
+  script:
+    # Basic role syntax check
+    - ansible-playbook tests/test.yml -i tests/inventory --syntax-check
+
+    # Run the first time
+    - ansible-playbook tests/test.yml -i tests/inventory -c local -b
+
+    # Run again and expect no changes
+    - >
+      ansible-playbook tests/test.yml -i tests/inventory -c local -b
+      | grep -q 'changed=0.*failed=0'
+      && (echo 'Idempotence test: pass' && exit 0)
+      || (echo 'Idempotence test: fail' && exit 1)
+  only:
+    - master

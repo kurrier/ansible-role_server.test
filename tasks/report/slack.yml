@@ -1,0 +1,42 @@
+---
+- name: ensure destination exists
+  file:
+    path: "{{ common_temp_dest }}/{{ msg_job_uuid }}/slack"
+    state: directory
+  delegate_to: localhost
+  run_once: true
+  register: common_slack_files
+
+- name: creating slack report
+  template:
+    src: "templates/slack_full.md.j2"
+    dest: "{{ common_temp_dest }}/{{ msg_job_uuid }}/slack/{{ ansible_hostname }}_status.md"
+  delegate_to: localhost
+  register: common_slack_report
+  when: common_slack_files is success
+
+- name: creating full alert
+  shell: "cat {{ common_temp_dest }}/{{ msg_job_uuid }}/slack/{{ ansible_hostname }}_status.md >> {{ common_temp_dest }}/{{ msg_job_uuid }}/slack//SUMMARY.md"
+  tags:
+    - skip_ansible_lint
+  register: common_slack_summary
+  delegate_to: localhost
+  when: common_slack_report is success
+
+- name: creating slack alert
+  shell: "cat {{ common_temp_dest }}/{{ msg_job_uuid }}/slack/SUMMARY.md"
+  register: common_slack_alert
+  delegate_to: localhost
+  run_once: true
+  when: common_slack_summary is success
+
+- name: creating slack vars
+  set_fact:
+    msg_alert_txt: "{{ common_slack_alert.stdout }}"
+  delegate_to: localhost
+  run_once: true
+  when: common_slack_alert is success
+
+- name: slack alert results
+  debug: msg="{{ msg_alert_txt }}"
+

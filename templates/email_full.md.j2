@@ -1,0 +1,15 @@
+{{ ansible_hostname }} {{ common_test_result }}
+{{ health_cpu_result }} - {{ health_mem_result }} - {{ health_disk_result }}
+
+Network : {{ common_network_result }}
+{% if common_services_result is defined and common_services_result|length > 0 %}System Services: {{ common_services_result }}
+{% if common_services_result == "Failed" %}{{ common_services_name.stdout }}{% endif %}{% endif %}
+
+{% if common_app_service_results is defined and common_app_service_results|length > 0 %}App Services: {{ common_app_service_results }}
+{% if common_app_service_results == "Failed" %}{{ common_app_service_failed }}{% endif %}{% endif %}
+{% if common_app_api_results is defined and common_app_api_results|length > 0 %}App API: {{ common_app_api_results }}
+{% if common_app_api_results == "Failed" %}{{ common_app_failed }}{% endif %}{% endif %}
+
+---
+
+

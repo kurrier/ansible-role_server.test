@@ -1,0 +1,39 @@
+---
+- name: system services test
+  block:
+    - name: system services test
+      shell: 'systemctl list-units --state=failed | grep "service"'
+      register: common_services
+      failed_when: common_services.stdout|length > 0
+
+    - name: system services test var
+      set_fact:
+        common_services_result: "Success"
+
+  rescue:
+    - name: system services fail info
+      shell: "systemctl list-units --state=failed | grep 'loaded' | tail -n1 | awk '{print $1}'"
+      no_log: true
+      register: common_service_count
+
+    - name: system services fail info
+      shell: "systemctl list-units --state=failed | grep 'loaded' | grep '.service' | awk '{print $2}'"
+      no_log: true
+      register: common_services_name_full
+  
+    - name: system services fail info
+      shell: "echo -e '{{ common_services_name_full.stdout }}' | sed 's/^/Failed to start: /'" 
+      no_log: true
+      register: common_services_name
+
+    - name: system services test var
+      set_fact:
+        common_services_result: "Failed"
+
+  always:
+    - name: system services test results
+      debug: msg="{{ common_services_result }}"
+ 
+    - name: system service failed results
+      debug: msg="{{ common_services_name.stdout }}"
+      when: common_services_result == "Failed"

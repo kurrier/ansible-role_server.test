@@ -1,0 +1,69 @@
+---
+- name: connection test
+  block:
+    - name: connection test
+      ping:
+      register: common_ping
+
+    - name: connection test var
+      set_fact:
+        common_ping_result: "Success"
+      when: common_ping.ping == "pong"
+
+  rescue:
+    - name: connection test var
+      set_fact:
+        common_ping_result: "Failed"
+
+  always:
+    - name: connection test results
+      debug: msg="{{ common_ping_result }}"
+
+- name: dns test
+  block:
+    - name: dns test
+      command: "dig {{ ansible_fqdn }} +short"
+      register: common_dns
+
+    - name: dns test var
+      set_fact:
+        common_dns_result: "Success"
+      when: common_dns.stdout != ""
+
+  rescue:
+    - name: dns test var
+      set_fact:
+        common_dns_result: "Failed"
+
+  always:
+    - name: dns test results
+      debug: msg="{{ common_dns_result }}"
+
+  when: common_ping_result == "Success"
+
+- name: network results
+  block:
+
+    - name: network results
+      set_fact:
+        common_network_result: "Success"
+      when:
+        - common_ping_result == "Success"
+        - common_dns_result == "Success"
+      failed_when: common_ping_result == "Failed" or common_dns_result == "Failed"
+
+  rescue:
+    - name: network results
+      set_fact:
+        common_network_result: "Failed"
+      when: common_ping_result == "Failed"
+
+    - name: network results
+      set_fact:
+        common_network_result: "Warning [DNS issue]"
+      when: common_dns_result == "Failed"
+
+  always:
+    - name: network test results
+      debug: msg="{{ common_network_result }}"
+

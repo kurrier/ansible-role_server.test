@@ -1,0 +1,9 @@
+---
+- name: system services test
+  include_tasks: "services/system_services-rhel7.yml"
+  when: ansible_distribution == "RedHat" and ansible_distribution_major_version >= "7"
+
+- name: app services test
+  include_tasks: "services/app_services-rhel{{ ansible_distribution_major_version }}.yml"
+  when: ansible_distribution == "RedHat" and ansible_distribution_major_version >= "6"
+

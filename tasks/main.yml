@@ -1,0 +1,46 @@
+---
+# tasks file for server.test
+- name: job setup
+  block:
+    - name: set version
+      shell: "uuidgen -r | cut -c1-8"
+      register: common_uuid
+      delegate_to: localhost
+      run_once: true
+      changed_when: common_uuid.rc == 0
+
+    - name: set job vars
+      set_fact:
+        msg_job_time: "{{ lookup('pipe', 'date +%s') }}"
+        msg_job_uuid: "{{ common_uuid.stdout }}"
+      delegate_to: localhost
+      run_once: true
+  when: common_function_setup is defined and common_function_setup|bool
+
+- name: test jobs
+  block:
+    - name: network test
+      include_tasks: "network_test.yml"
+      when: common_function_net is defined and common_function_net|bool
+
+    - name: services test
+      include_tasks: "services_test.yml"
+      when:
+        - common_function_service is defined and common_function_service|bool
+        - common_app_name is defined and common_app_name|length > 0    
+ 
+    - name: app test
+      include_tasks: "app_test.yml"
+      when:
+        - common_function_app is defined and common_function_app|bool
+        - app_url is defined and app_url|length > 0
+
+    - name: health stats
+      include_tasks: "health_stats.yml"
+      when: common_function_health is defined and common_function_health|bool
+
+    - name: create report
+      include_tasks: "report.yml"
+      when: common_function_report is defined and common_function_report|bool
+
+  when: ansible_distribution == "RedHat" and ansible_distribution_major_version >= "6"

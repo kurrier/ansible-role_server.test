@@ -1,0 +1,16 @@
+---
+- hosts: localhost
+  become: no
+  gather_facts: false
+  pre_tasks:
+    - setup:
+        filter: ansible_hostname
+    - setup:
+        filter: ansible_fqdn
+    - setup:
+        filter: ansible_distribution
+    - setup:
+        filter: ansible_distribution_major_version
+
+  roles:
+    - ../..

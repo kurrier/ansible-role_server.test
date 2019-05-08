@@ -1,0 +1,54 @@
+---
+- name: install sysstat
+  yum: name=sysstat state=present
+  register: health_sysstat
+  become: yes
+  tags:
+    - skip_ansible_lint
+
+- name: enable systat service
+  service: name=sysstat state=started enabled=yes
+  become: yes
+  when: health_sysstat is changed
+
+- name: cpu usage
+  block:
+    - name: get cpu usage
+      shell: "sar | tail -n1 | awk '{print $3 + $4 + $5 + $6 + $7}'"
+      register: health_cpu
+
+    - name: cpu usage var
+      set_fact:
+        health_cpu_result: "CPU: {{ health_cpu.stdout }}%"
+      when: health_cpu is success
+
+    - name: cpu usage
+      debug: msg="{{ health_cpu_result }}"
+
+- name: memory usage
+  block:
+    - name: get memory usage
+      shell: "sar -r | tail -n1 | awk '{print $4}'"
+      register: health_mem
+
+    - name: memory usage var
+      set_fact:
+        health_mem_result: "Memory: {{ health_mem.stdout }}%"
+      when: health_mem is success
+
+    - name: memory usage
+      debug: msg="{{ health_mem_result }}"
+
+- name: disk iops
+  block:
+    - name: get disk iops
+      shell: "iostat -m -d | tail -n+4 | awk '{total += $2} END {print total}'"
+      register: health_disk
+
+    - name: disk iops var
+      set_fact:
+        health_disk_result: "Disk IOPS: {{ health_disk.stdout }}"
+      when: health_disk is success
+
+    - name: disk
+      debug: msg="{{ health_disk_result }}"

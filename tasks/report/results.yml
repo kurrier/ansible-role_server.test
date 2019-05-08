@@ -1,0 +1,34 @@
+---
+- name: full results
+  set_fact:
+    common_test_result: "is alive"
+    msg_alert_lvl: 3
+    msg_alert_title: "Server Test Completed"
+    msg_alert_url: " "
+  when: common_network_result == "Success"
+
+- name: full results
+  set_fact:
+    common_test_result: "is Down!!"
+    msg_alert_lvl: 1
+    msg_alert_title: "Server Test Failed"
+    msg_alert_url: " "
+  when: common_network_result == "Failed"
+
+- name: full results
+  set_fact:
+    common_test_result: "is having an issue!"
+    msg_alert_lvl: 2
+    msg_alert_title: "Server Test Warning"
+    msg_alert_url: " "
+  when: common_services_result is defined and common_services_result == "Failed"
+
+- name: full results
+  set_fact:
+    common_test_result: "app is not happy!"
+    msg_alert_lvl: 2
+    msg_alert_title: "Server Test Warning"
+    msg_alert_url: " "
+  when: >
+    common_app_service_results is defined and common_app_service_results == "Failed" or
+    common_app_api_results is defined and common_app_api_results == "Failed"

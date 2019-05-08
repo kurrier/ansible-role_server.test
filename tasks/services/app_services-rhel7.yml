@@ -1,0 +1,54 @@
+---
+- name: app service test [rhel7]
+  block:
+    - name: app service errors [rhel7]
+      shell: "systemctl show -p SubState {{ item }} | sed 's/SubState=//g'"
+      register: common_app_service
+      failed_when: common_app_service.stdout != "running"
+      with_items: "{{ common_app_name }}"
+
+  rescue:
+    - name: app services failed var
+      set_fact:
+        common_app_service_failed: "{{ common_app_service_failed|default({}) | combine ( { item.item: item.stdout }  ) }}"
+      with_items: "{{ common_app_service.results }}"
+      when: item.failed|bool
+      no_log: true
+
+    - name: app services error var
+      set_fact:
+        common_app_service_failed: "{{ common_app_service_failed|default({}) | combine ( { item.item: item.stderr }  ) }}"
+      with_items: "{{ common_app_service.results }}"
+      when: item.stderr != ""
+      no_log: true
+
+  always:
+    - name: app services success var
+      set_fact:
+        common_app_service_success: "{{ common_app_service_success|default({}) | combine ( { item.item: item.stdout }  ) }}"
+      with_items: "{{ common_app_service.results }}"
+      when: item.stdout == "running"
+      no_log: true
+
+    - name: app service success results
+      debug: msg="{{ common_app_service_success }}"
+      when: common_app_service_success is defined and common_app_service_success|length > 0
+
+    - name: app service failed results
+      debug: msg="{{ common_app_service_failed }}"
+      when: common_app_service_failed is defined and common_app_service_failed|length > 0
+
+    - name: app services result var
+      set_fact:
+        common_app_service_results: "Success"
+      when:
+        - common_app_service_failed is not defined
+        - common_app_service_success is defined and common_app_service_success|length > 0
+
+    - name: app services result var
+      set_fact:
+        common_app_service_results: "Failed"
+      when: common_app_service_failed is defined and common_app_service_failed|length > 0
+
+    - name: app service results
+      debug: msg="{{ common_app_service_results }}"

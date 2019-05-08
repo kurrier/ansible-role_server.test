@@ -1,0 +1,8 @@
+---
+# vars file for server.test
+common_temp_dest: /tmp/server_test
+
+msg_subject: "Ansible Server Test"
+msg_footer: "RedHat"
+msg_footer_icon: " "
+

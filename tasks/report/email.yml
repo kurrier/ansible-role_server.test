@@ -1,0 +1,42 @@
+---
+- name: ensure destination exists
+  file:
+    path: "{{ common_temp_dest }}/{{ msg_job_uuid }}/email"
+    state: directory
+  delegate_to: localhost
+  run_once: true
+  register: common_email_files
+
+- name: creating email report
+  template:
+    src: "templates/email_full.md.j2"
+    dest: "{{ common_temp_dest }}/{{ msg_job_uuid }}/email/{{ ansible_hostname }}_status.md"
+  delegate_to: localhost
+  register: common_email_report
+  when: common_email_files is success
+
+- name: creating full alert
+  shell: "cat {{ common_temp_dest }}/{{ msg_job_uuid }}/email/{{ ansible_hostname }}_status.md >> {{ common_temp_dest }}/{{ msg_job_uuid }}/email/SUMMARY.md"
+  tags:
+    - skip_ansible_lint
+  register: common_email_summary
+  delegate_to: localhost
+  when: common_email_report is success
+
+- name: creating email alert
+  shell: "cat {{ common_temp_dest }}/{{ msg_job_uuid }}/email/SUMMARY.md"
+  register: common_email_alert
+  delegate_to: localhost
+  run_once: true
+  when: common_email_summary is success
+
+- name: creating email vars
+  set_fact:
+    msg_alert_body: "{{ common_email_alert.stdout }}"
+  delegate_to: localhost
+  run_once: true
+  when: common_email_alert is success
+
+- name: email alert results
+  debug: msg="{{ msg_alert_body }}"
+

@@ -1,0 +1,21 @@
+---
+- name: test results
+  include_tasks: "report/results.yml"
+
+- name: slack report
+  include_tasks: "report/slack.yml"
+  when: common_function_slack is defined and common_function_slack|bool
+
+- name: email report
+  include_tasks: "report/email.yml"
+  when: common_function_email is defined and common_function_email|bool
+
+- name: cleaning up all temp files
+  file:
+    path: "{{ common_temp_dest }}"
+    state: absent
+  delegate_to: localhost
+  run_once: true
+  when: >
+    common_function_slack is defined and common_function_slack|bool or 
+    common_function_email is defined and common_function_email|bool

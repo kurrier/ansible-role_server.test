@@ -1,0 +1,66 @@
+---
+- name: app test
+  block:
+    - name: app test
+      uri:
+        url: "{{ item }}"
+        return_content: yes
+        validate_certs: no
+      register: app_test_result
+      failed_when:
+        - "'OK' not in app_test_result.content"
+        - "'ALIVE' not in app_test_result.content"
+        - "'green' not in app_test_result.content"
+        - "'RUNNING' not in app_test_result.content"
+      with_items: "{{ app_url }}"
+
+  rescue:
+#    - debug: msg="{{ app_test_result }}"
+    - name: app test failed var
+      set_fact:
+        common_app_failed: "{{ common_app_failed|default({}) | combine ( { item.item: item.content } ) }}"
+      with_items: "{{ app_test_result.results }}"
+      when: item.failed|bool
+      no_log: true
+
+
+    - name: app test error var
+      set_fact:
+        common_app_failed: "{{ common_app_failed|default({}) | combine ( { item.item: item.msg } ) }}"
+      with_items: "{{ app_test_result.results }}"
+      when: item.status == -1
+      no_log: true
+
+  always:
+#    - debug: msg="{{ app_test_result }}"
+
+    - name: app test var
+      set_fact:
+        common_app_success: "{{ common_app_success|default({}) | combine ( { item.item: item.content } ) }}"
+      with_items: "{{ app_test_result.results }}"
+      when: "'OK' in item.content or 'ALIVE' in item.content or 'green' in item.content or 'RUNNING' in item.content"
+      no_log: true
+
+    - name: app test success results
+      debug: msg="{{ common_app_success }}"
+      when: common_app_success is defined and common_app_success|length > 0
+
+    - name: app test failed results
+      debug: msg="{{ common_app_failed }}"
+      when: common_app_failed is defined and common_app_failed|length > 0
+
+    - name: app test result var
+      set_fact:
+        common_app_api_results: "Success"
+      when:
+        - common_app_failed is not defined
+        - common_app_success is defined and common_app_success|length > 0
+
+    - name: app test result var
+      set_fact:
+        common_app_api_results: "Failed"
+      when: common_app_failed is defined and common_app_failed|length > 0
+
+    - name: app service results
+      debug: msg="{{ common_app_api_results }}"
+
