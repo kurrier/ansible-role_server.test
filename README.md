@@ -1,4 +1,4 @@
-Ansible Role: server.test [![CircleCI](https://circleci.com/gh/kurrier/ansible-role_rhel_satellite.svg?style=svg)](https://circleci.com/gh/kurrier/ansible-role_rhel_satellite)
+Ansible Role: server.test [![CircleCI](https://circleci.com/gh/kurrier/ansible-role_server.test.svg?style=svg)](https://circleci.com/gh/kurrier/ansible-role_server.test)
 =========
 
 RHEL Server Test
